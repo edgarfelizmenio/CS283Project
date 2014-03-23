@@ -1,0 +1,6 @@
+*.zip
+*.csv
+*.tar.gz
+*.txt
+*.~lock.*.csv*
+*.R~
