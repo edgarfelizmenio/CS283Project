@@ -1,121 +1,36 @@
 library("fpc")
 
-
-setwd("CS283_MiniProj")
-
-
-kdd <- read.table("kddcup_data_10_percent.data",header=TRUE,sep=",")
-#ids100_0.data
-kdd <- read.table("ids100_0.data",header=FALSE,sep=",")
-data <- kdd[, -42]
+#Edit 
+setwd("CS283_MiniProj/RandomPieces_10000")
 
 
-# DBSCAN CODE
+# Load training data and test data
+kddtrain <- read.table("ids10000_0.data",header=FALSE,sep=",")
+kddtest <- read.table("ids10000_1.data",header=FALSE,sep=",")
 
-function (data, eps, MinPts = 5, scale = FALSE, method = c("hybrid", 
-                                                           "raw", "dist"), seeds = TRUE, showplot = FALSE, countmode = NULL) 
-{
-  isNominal <- c( 1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 )
-  distcomb <- function(x, data) {
-    data <- t(data)
-    temp <- apply(x, 1, function(x) {
-      #sqrt(colSums((data - x)^2))
-      sqrt(colsums(isNominal == FALSE? data-x:data!=x)^2))
-    })
-    if (is.null(dim(temp))) 
-      matrix(temp, nrow(x), ncol(data))
-    else t(temp)
-  }
-  method <- match.arg(method)
-  data <- as.matrix(data)
-  n <- nrow(data)
-  if (scale) 
-    data <- scale(data)
-  classn <- cv <- integer(n)
-  isseed <- logical(n)
-  cn <- integer(1)
-  for (i in 1:n) {
-    if (i %in% countmode) 
-      cat("Processing point ", i, " of ", n, ".\n")
-    unclass <- (1:n)[cv < 1]
-    if (cv[i] == 0) {
-      if (method == "dist") {
-        reachables <- unclass[data[i, unclass] <= eps]
-      }
-      else {
-        reachables <- unclass[as.vector(distcomb(data[i, 
-                                                      , drop = FALSE], data[unclass, , drop = FALSE])) <= 
-                                eps]
-      }
-      if (length(reachables) + classn[i] < MinPts) 
-        cv[i] <- (-1)
-      else {
-        cn <- cn + 1
-        cv[i] <- cn
-        isseed[i] <- TRUE
-        reachables <- setdiff(reachables, i)
-        unclass <- setdiff(unclass, i)
-        classn[reachables] <- classn[reachables] + 1
-        while (length(reachables)) {
-          if (showplot) 
-            plot(data, col = 1 + cv, pch = 1 + isseed)
-          cv[reachables] <- cn
-          ap <- reachables
-          reachables <- integer()
-          if (method == "hybrid") {
-            tempdist <- distcomb(data[ap, , drop = FALSE], 
-                                 data[unclass, , drop = FALSE])
-            frozen.unclass <- unclass
-          }
-          for (i2 in seq(along = ap)) {
-            j <- ap[i2]
-            if (showplot > 1) 
-              plot(data, col = 1 + cv, pch = 1 + isseed)
-            if (method == "dist") {
-              jreachables <- unclass[data[j, unclass] <= 
-                                       eps]
-            }
-            else if (method == "hybrid") {
-              jreachables <- unclass[tempdist[i2, match(unclass, 
-                                                        frozen.unclass)] <= eps]
-            }
-            else {
-              jreachables <- unclass[as.vector(distcomb(data[j, 
-                                                             , drop = FALSE], data[unclass, , drop = FALSE])) <= 
-                                       eps]
-            }
-            if (length(jreachables) + classn[j] >= MinPts) {
-              isseed[j] <- TRUE
-              cv[jreachables[cv[jreachables] < 0]] <- cn
-              reachables <- union(reachables, jreachables[cv[jreachables] == 
-                                                            0])
-            }
-            classn[jreachables] <- classn[jreachables] + 
-              1
-            unclass <- setdiff(unclass, j)
-          }
-        }
-      }
-    }
-    if (!length(unclass)) 
-      break
-  }
-  rm(classn)
-  if (any(cv == (-1))) {
-    cv[cv == (-1)] <- 0
-  }
-  if (showplot) 
-    plot(data, col = 1 + cv, pch = 1 + isseed)
-  out <- list(cluster = cv, eps = eps, MinPts = MinPts)
-  if (seeds && cn > 0) {
-    out$isseed <- isseed
-  }
-  class(out) <- "dbscan"
-  out
-}
+#Remove the labels
+traindata <- kddtrain[, -42]
+testdata <- kddtest[, -42]
+
+#Normalization Code
+minmaxnorm <- function(x) {(x - min(x, na.rm=TRUE))/(max(x,na.rm=TRUE) - min(x, na.rm=TRUE))}
+# use lapply to apply minmaxnorm() to every column in a data frame
 
 
-#END OF DBSCAN CODE
 
+#GENERATE MODEL
+model <- dbscan(traindata, 100, method = "raw")
 
-kdddbscan <- dbscan(data, 1000,method = "raw")
+#Identify cluster assignments based on model
+clusterAssignments <- predict(model, traindata)
+
+#Define Cluster Labels
+#--to implement
+#--compare clusterAssignments with traindata[,42]
+#--
+
+#Predict assignments of testdata
+clusterAssignmentsTest <- predict(model, traindata, testdata)
+
+#Evaluate Accuracy/Precision/Recall
+#--compare clusterAssignmentsTest to cluster labels.
