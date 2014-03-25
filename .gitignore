@@ -4,3 +4,7 @@
 *.txt
 *.~lock.*.csv*
 *.R~
+
+ids.names
+
+/RandomPieces_*

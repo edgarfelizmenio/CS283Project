@@ -1,28 +1,65 @@
 library("fpc")
+library("data.table")
+library("plyr")
 
+source("modified_dbscan.R")
 #Edit 
-setwd("CS283_MiniProj/RandomPieces_10000")
+#setwd("./RandomPieces_10000")
 
 
 # Load training data and test data
-kddtrain <- read.table("ids10000_0.data",header=FALSE,sep=",")
-kddtest <- read.table("ids10000_1.data",header=FALSE,sep=",")
+kddtrain <- read.table("./RandomPieces_10000/ids10000_0.data",header=FALSE,sep=",")
+kddtest <- read.table("./RandomPieces_10000/ids10000_1.data",header=FALSE,sep=",")
 
 #Remove the labels
 traindata <- kddtrain[, -42]
 testdata <- kddtest[, -42]
 
+classes <- kddtrain[42]
+names(classes) <- NULL
+
 #Normalization Code
-minmaxnorm <- function(x) {(x - min(x, na.rm=TRUE))/(max(x,na.rm=TRUE) - min(x, na.rm=TRUE))}
-# use lapply to apply minmaxnorm() to every column in a data frame
+minmaxnorm <- function(x) {
+  maximum <- max(x, na.rm=TRUE)
+  minimum <- min(x, na.rm=TRUE)
+  if (maximum == minimum) {
+    return(rep(0, length(x)))
+  } else {
+    return(((x - minimum)/(maximum - minimum)))
+  }
+}
 
 
+normtraindata <- apply(traindata,2,minmaxnorm)
+normtraindata <- as.data.frame(normtraindata)
 
 #GENERATE MODEL
-model <- dbscan(traindata, 100, method = "raw")
+eps <- 0.1
+for(minpts in 2:100) {
+  model <- mydbscan(normtraindata, 9, eps=eps, MinPts=minpts, method = "raw", showplot=1)
+  clusters <- predict(model, normtraindata)
+  
+  print(model)
+
+  clusterAssignments <- cbind(clusters, classes)
+  cat(dim(clusterAssignments))
+  clusterAssignments <- as.data.frame(clusterAssignments, col.names=c("clusters", "classes"))
+  clusterAssignments <- clusterAssignments[with(clusterAssignments, order(clusters,classes)), ]
+  clusterAssignments <- count(clusterAssignments, c("clusters","classes"))
+  #print(clusterAssignments)
+  trainingclusters <- aggregate(freq ~ clusters, clustsum,max)
+
+  #cat('\n\nPredicted Classes:\n')
+  #print(trainingclusters)
+  oldnames <- colnames(trainingclusters)
+  trainingclusters <- merge(trainingclusters, clustsum)
+  colnames(trainingclusters) <- c(oldnames, "class")
+  trainingclusters <- trainingclusters[,c("clusters", "class", "freq")]
+  cat('\n\nPredicted Classes:\n')
+  print(trainingclusters)
+}
 
 #Identify cluster assignments based on model
-clusterAssignments <- predict(model, traindata)
 
 #Define Cluster Labels
 #--to implement
@@ -30,7 +67,7 @@ clusterAssignments <- predict(model, traindata)
 #--
 
 #Predict assignments of testdata
-clusterAssignmentsTest <- predict(model, traindata, testdata)
+#clusterAssignmentsTest <- predict(model, traindata, testdata)
 
 #Evaluate Accuracy/Precision/Recall
 #--compare clusterAssignmentsTest to cluster labels.

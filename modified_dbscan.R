@@ -1,15 +1,32 @@
 
-
-# DBSCAN CODE
-
-mydbscan <- function(data, eps, MinPts = 5, scale = FALSE, method = c("hybrid", "raw", "dist"), seeds = TRUE, showplot = FALSE, countmode = NULL) 
+# MODIFIED DBSCAN CODE
+mydbscan <- function(data, numNominal, eps, MinPts = 5, scale = FALSE, method = c("hybrid", "raw", "dist"), seeds = TRUE, showplot = FALSE, countmode = NULL) 
 {
-  isNominal <- c( 1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 )
-  distcomb <- function(x, data) {
+  
+  distcomb <- function(x, data, numNominal) {
     data <- t(data)
-    temp <- apply(x, 1, function(x) {
-      #sqrt(colSums((data - x)^2))
-      sqrt(colSums(isNominal == 0? data-x:data!=x)^2)
+    
+    nominalX <- matrix(x[1:numNominal], nrow=1)
+    ordinalX <- matrix(x[(numNominal+1) :length(x)], nrow=1)
+    #cat(numNominal)
+    #cat('\n')
+    #cat(dim(data))
+    #cat('\n')
+    nominalData <- data[(1:numNominal) ,]
+    ordinalData <- data[(numNominal+1) : nrow(data),]
+
+    tempNominal <- apply(nominalX, 1, function(nominalX) {
+      colSums((matrix(nominalData, nrow=numNominal) != nominalX)^2)
+    })
+    
+    tempOrdinal <- apply(ordinalX, 1, function(ordinalX) {
+      colSums((ordinalData - ordinalX)^2)
+    })
+    
+    sumx <- cbind(tempNominal, tempOrdinal)
+
+    temp <- apply(sumx, 1, function(sumx) {
+      sqrt(sum(sumx))
     })
     if (is.null(dim(temp))) 
       matrix(temp, nrow(x), ncol(data))
@@ -33,7 +50,7 @@ mydbscan <- function(data, eps, MinPts = 5, scale = FALSE, method = c("hybrid", 
       }
       else {
         reachables <- unclass[as.vector(distcomb(data[i, 
-                                                      , drop = FALSE], data[unclass, , drop = FALSE])) <= 
+                                                      , drop = FALSE], data[unclass, , drop = FALSE], numNominal)) <= 
                                 eps]
       }
       if (length(reachables) + classn[i] < MinPts) 
@@ -53,7 +70,7 @@ mydbscan <- function(data, eps, MinPts = 5, scale = FALSE, method = c("hybrid", 
           reachables <- integer()
           if (method == "hybrid") {
             tempdist <- distcomb(data[ap, , drop = FALSE], 
-                                 data[unclass, , drop = FALSE])
+                                 data[unclass, , drop = FALSE], numNominal)
             frozen.unclass <- unclass
           }
           for (i2 in seq(along = ap)) {
@@ -70,7 +87,7 @@ mydbscan <- function(data, eps, MinPts = 5, scale = FALSE, method = c("hybrid", 
             }
             else {
               jreachables <- unclass[as.vector(distcomb(data[j, 
-                                                             , drop = FALSE], data[unclass, , drop = FALSE])) <= 
+                                                             , drop = FALSE], data[unclass, , drop = FALSE], numNominal)) <= 
                                        eps]
             }
             if (length(jreachables) + classn[j] >= MinPts) {
@@ -99,7 +116,7 @@ mydbscan <- function(data, eps, MinPts = 5, scale = FALSE, method = c("hybrid", 
   if (seeds && cn > 0) {
     out$isseed <- isseed
   }
-  class(out) <- "mydbscan"
+  class(out) <- "dbscan"
   out
 }
 
