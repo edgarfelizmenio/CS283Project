@@ -34,38 +34,56 @@ normtraindata <- apply(traindata,2,minmaxnorm)
 normtraindata <- as.data.frame(normtraindata)
 
 #GENERATE MODEL
+numclust <- matrix(nrow=11, ncol=9)
+rownames(numclust) <- seq(0,1,by=0.1)
+colnames(numclust) <- seq(2,10)
+i <- 1
 for (eps in seq(0,1, by=0.1)) {
+  j <- 1
   for(minpts in 2:10) {
-    model <- mydbscan(normtraindata, 9, eps=eps, MinPts=minpts, method = "raw", showplot=1)
+    model <- mydbscan(normtraindata, 9, eps=eps, MinPts=minpts, method = "raw")
     clusters <- predict(model, normtraindata)
     
     #print(model)
     
-    cat("eps: ")
-    cat(model$eps)
-    cat("\nMinPts: ")
-    cat(model$MinPts)
-    cat("\nnumber of clusters: ")
-    cat(length(unique(model$cluster)))
-    cat("\n")
+    #cat("eps: ")
+    #cat(model$eps)
+    #cat("\nMinPts: ")
+    #cat(model$MinPts)
+    #cat("\nnumber of clusters: ")
+    #cat(length(unique(model$cluster)))
+    #cat("\n")
+    numclust[i,j] <- length(unique(model$cluster))
+    j <- j + 1
     
     clusterAssignments <- cbind(clusters, classes)
     clusterAssignments <- as.data.frame(clusterAssignments, col.names=c("clusters", "classes"))
     clusterAssignments <- clusterAssignments[with(clusterAssignments, order(clusters,classes)), ]
-    clusterAssignments <- count(clusterAssignments, c("clusters","classes"))
-    #print(clusterAssignments)
-    trainingclusters <- aggregate(freq ~ clusters, clustsum,max)
+    
+    cat("\n=================================================\n")
+    cat("eps: ")
+    cat(model$eps)
+    cat("\tMinPts: ")
+    cat(model$MinPts)
+    cat("\n=================================================\n")
+    cat('\nCluster summary:\n')
+    clustsum <- count(clusterAssignments, c("clusters","classes"))
+    print(clustsum)
 
-    #cat('\n\nPredicted Classes:\n')
-    #print(trainingclusters)
+
+    cat('\n\nPredicted Classes:\n')
+    trainingclusters <- aggregate(freq ~ clusters, clustsum,max)
     oldnames <- colnames(trainingclusters)
     trainingclusters <- merge(trainingclusters, clustsum)
     colnames(trainingclusters) <- c(oldnames, "class")
     trainingclusters <- trainingclusters[,c("clusters", "class", "freq")]
-    #cat('\n\nPredicted Classes:\n')
-    #print(trainingclusters)
+
+    print(trainingclusters)
   }
+  i <- i + 1
+  
 }
+print(numclust)
 
 #Identify cluster assignments based on model
 
