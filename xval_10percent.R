@@ -13,7 +13,7 @@ build_pathname <- function(filename, path) {
 
 num_datasets <- 10
 #change filepath per size
-filepath <- "./RandomPieces_1000" 
+filepath <- "./RandomPieces_100" 
 #1000 for 1 percent
 #100 for 10 percent
 
