@@ -1,9 +1,13 @@
-#TODO put the cross validation code here
-#dump all important output in csv files
+#load libraries
+
+library("fpc")
+library("data.table")
+library("plyr")
 
 build_pathname <- function(filename, path) {
   return(paste(path, filename, sep="/"))
 }
+
 
 num_datasets <- 11
 filepath <- "./RandomPieces_10000" 
@@ -18,26 +22,27 @@ names(file_paths) <- NULL
 
 datasets <- sapply(file_paths, read.table, header=FALSE, sep=",")
 
+#PERFORMANCE VARIABLES
+totalPurity <- 0
+
+
 for (i in 1:num_datasets) {
   
   cat(paste("validation #",i,":\n",sep=""))
   #create trainingset and test set
   
-  train <- data.frame()
+  traindata <- data.frame()
   for (j in 1:num_datasets) {
     if (j != i) {
-      train <- rbind(train, data.frame(datasets[,j]))
+      traindata <- rbind(traindata, data.frame(datasets[,j]))
     }
   }
-  test <- data.frame(datasets[,i])
+  testdata <- data.frame(datasets[,i])
   
   # INSERT TRAINING AND PREDICTION CODE HERE
+  source("run_dbscan.R")
+  
 }
-
-
-
-#kddtrain <- read.table("./RandomPieces_1000/ids1000_322.data",header=FALSE,sep=",")
-
 
 
 #get 10 files randomly
